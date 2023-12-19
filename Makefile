@@ -1,17 +1,21 @@
-CC		= $(CROSS_COMPILE)gcc -g
+#CROSS_COMPILE = aarch64-poky-linux
+ifeq ($(CC),"")
+CC		= $(CROSS_COMPILE)gcc
+endif
 CFLAGS		+= -g
 CFLAGS		+= -O0
 CFLAGS		+= -Wall
-CFLAGS		+= -Wwrite-strings
-CFLAGS		+= -Wstrict-prototypes
-CFLAGS		+= -Wmissing-prototypes
+#CFLAGS		+= -Wwrite-strings
+#CFLAGS		+= -Wstrict-prototypes
+#CFLAGS		+= -Wmissing-prototypes
 CFLAGS		+= -W
 CFLAGS		+= -Wall
 #CFLAGS		+= -static
 #CFLAGS		+= -nostdinc
 #CFLAGS		+= -nostdlib
 #CFLAGS		+= -fno-builtin
-CFLAGS		+= -ffreestanding
+#CFLAGS		+= -ffreestanding
+CFLAGS		+= -I$(SDKTARGETSYSROOT)/usr/include
 
 DTC		= dtc
 DTS2DTB		= $(DTC) -I dts -O dtb
@@ -37,9 +41,9 @@ all:	$(OBJS) $(PROGRAMS)
 all:	$(DTB) $(DTBO)
 
 %.o : %.c
-	$(CC) -c $<
+	$(CC) $(CFLAGS) -c $<
 
-%.elf: %.c
+%.elf: %.o
 	$(CC) -o $@ $< $(LIB_SRCS:.c=.o)
 
 %.dtb: %.dts
