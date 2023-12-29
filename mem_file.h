@@ -77,6 +77,7 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
     void * va;
     ssize_t n;
     extern const char * __progname;
+    size_t size = ((len + 0xFFFu) & ~0xFFFu);
 
     if ((fd = open(path, O_RDONLY)) < 0) {
         printf("%s: Cannot open file to read '%s'"NL, __progname, path);
@@ -84,14 +85,27 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
         goto L_RETURN;
     }
 
-    if ((va = mmap_device_memory(NULL, NULL, len, pa, &mem_fd)) == NULL) {
+    // if ((va = mmap_device_memory(NULL, NULL, len, pa, &mem_fd)) == NULL) {
+    if ((va = mmap_device_memory(NULL, NULL, size, pa, &mem_fd)) == NULL) {
         printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, len);
         ret = -1;
         goto L_RETURN;
     }
+    if (va == -1) {
+        printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, size);
+        ret = -1;
+        goto L_RETURN;
+    }
+    printf("%s: VA 0x%p"NL, __progname, va);
 
+    // {
+    // char buf[0x1000];
+    // n = read(fd, buf, len);
+    // printf("%s: Load %ld of %lx bytes."NL, __progname, n, size);
+    // lseek(fd, 0, SEEK_SET);
+    // }
     n = read(fd, va, len);
-    printf("%s: Load %lu bytes."NL, __progname, n);
+    printf("%s: Load %ld of %lx bytes."NL, __progname, n, size);
 
     munmap_device_memory(mem_fd);
 
