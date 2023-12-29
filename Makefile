@@ -15,7 +15,17 @@ CFLAGS		+= -Wall
 #CFLAGS		+= -nostdlib
 #CFLAGS		+= -fno-builtin
 #CFLAGS		+= -ffreestanding
+
+#CFLAGS		+= -Wl,-O1
+#CFLAGS		+= -Wl,--hash-style=gnu
+#CFLAGS		+= -Wl,--as-needed
+
 CFLAGS		+= -I$(SDKTARGETSYSROOT)/usr/include
+#CFLAGS		+= -I$(PKG_CONFIG_SYSROOT_DIR)/usr/include
+
+#LDFLAGS		+= -L$(SDKTARGETSYSROOT)/lib
+#LDFLAGS		= -L$(PKG_CONFIG_SYSROOT_DIR)/lib
+#LDFLAGS		+= -lc
 
 DTC		= dtc
 DTS2DTB		= $(DTC) -I dts -O dtb
@@ -45,6 +55,8 @@ all:	$(DTB) $(DTBO)
 
 %.elf: %.o
 	$(CC) -o $@ $< $(LIB_SRCS:.c=.o)
+#	$(CC) -o $@ $< $(LIB_SRCS:.c=.o) $(LDFLAGS)
+#	$(LD) -o $@ $< $(LIB_SRCS:.c=.o) $(LDFLAGS)
 
 %.dtb: %.dts
 	$(DTS2DTB) -o $@ $<
