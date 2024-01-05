@@ -91,7 +91,7 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
         ret = -1;
         goto L_RETURN;
     }
-    if (va == -1) {
+    if ((uintptr_t)va == ~0ull) {
         printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, size);
         ret = -1;
         goto L_RETURN;
