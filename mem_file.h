@@ -1,4 +1,4 @@
-// SPCX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 #ifndef ___MEM_H___
 #define ___MEM_H___
 
