@@ -58,7 +58,7 @@ static inline void * mmap_device_memory(const char * dev, void * addr, size_t le
             | MAP_PHYS
             | MAP_SHARED
             , mmap_fd, map_pa);
-    if (!va) {
+    if (!va || ((uintptr_t)va == ~0ull)) {
         perror("mmap");
         exit(EXIT_FAILURE);
     }
