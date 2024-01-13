@@ -63,8 +63,11 @@ static int parse_args(int argc, const char * argv[]) {
         return usage(argc, argv);
     }
 
-    printf("ADDRESS=0x%lX FILE=%s(0x%lX)"NL, 
-        mem_pa, rfname, mem_sz);
+    {
+        unsigned long pagesize = mmap_sys_pagesize();
+        printf("ADDRESS=0x%lX FILE=%s(0x%lX) PAGESIZE=0x%lX"NL, 
+                mem_pa, rfname, mem_sz, pagesize);
+    }
 
     return ret;
 }

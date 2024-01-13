@@ -7,6 +7,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <unistd.h> /* sysconf */
+
+static inline unsigned long mmap_sys_pagesize(void) {
+    unsigned long size = 0;
+    long ret = sysconf(_SC_PAGE_SIZE);
+    if (ret > 0) size = (unsigned long) ret;
+    else size = 0x1000U; // error, default 4Kib
+    return size;
+}
+
 #ifndef PROT_NOCACHE
 #define PROT_NOCACHE 0
 #endif // PROT_NOCACHE
@@ -16,14 +26,19 @@
 #ifndef NOFD
 #define NOFD -1
 #endif // NOFD
-static inline void * mmap_device_memory(const char * dev, void * addr, size_t len, uint64_t physical, int * fd) {
+static inline void * mmap_device_memory(const char * dev, void * addr, size_t len, uintptr_t physical, int * fd) {
     static int mmap_fd = NOFD;
     void * va;
     int prot = PROT_NOCACHE | PROT_READ | PROT_WRITE;
     int flags = 0;
+    unsigned long page_size;
+    uintptr_t map_pa, map_off, page_mask;
+    size_t map_sz;
+
     if (!dev) {
         dev = "/dev/mem";
     }
+
     if (mmap_fd < 0) {
         mmap_fd = open(dev, O_RDWR | O_SYNC);
         if (mmap_fd < 0) {
@@ -31,12 +46,18 @@ static inline void * mmap_device_memory(const char * dev, void * addr, size_t le
             exit(EXIT_FAILURE);
         }
     }
-    va = mmap(addr, len, prot,
+    page_size = mmap_sys_pagesize();
+    page_mask = ((uintptr_t)page_size -1);
+    map_pa = physical & ~page_mask;
+    map_off = physical - map_pa;
+    map_sz = (len + map_off + page_mask) & ~page_mask;
+
+    va = mmap(addr, map_sz, prot,
             (flags & ~MAP_TYPE)
             // | MAP_ANONYMOUS
             | MAP_PHYS
             | MAP_SHARED
-            , mmap_fd, physical);
+            , mmap_fd, map_pa);
     if (!va) {
         perror("mmap");
         exit(EXIT_FAILURE);
@@ -44,7 +65,7 @@ static inline void * mmap_device_memory(const char * dev, void * addr, size_t le
     if (fd) {
         *fd = mmap_fd;
     }
-    return va;
+    return (void*)(((uint8_t*)va) + map_off);
 }
 static inline void munmap_device_memory(int fd) {
     if (fd >= 0) {
@@ -77,7 +98,6 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
     void * va;
     ssize_t n;
     extern const char * __progname;
-    size_t size = ((len + 0xFFFu) & ~0xFFFu);
 
     if ((fd = open(path, O_RDONLY)) < 0) {
         printf("%s: Cannot open file to read '%s'"NL, __progname, path);
@@ -85,27 +105,20 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
         goto L_RETURN;
     }
 
-    // if ((va = mmap_device_memory(NULL, NULL, len, pa, &mem_fd)) == NULL) {
-    if ((va = mmap_device_memory(NULL, NULL, size, pa, &mem_fd)) == NULL) {
+    if ((va = mmap_device_memory(NULL, NULL, len, pa, &mem_fd)) == NULL) {
         printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, len);
         ret = -1;
         goto L_RETURN;
     }
     if ((uintptr_t)va == ~0ull) {
-        printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, size);
+        printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, len);
         ret = -1;
         goto L_RETURN;
     }
     printf("%s: VA 0x%p"NL, __progname, va);
 
-    // {
-    // char buf[0x1000];
-    // n = read(fd, buf, len);
-    // printf("%s: Load %ld of %lx bytes."NL, __progname, n, size);
-    // lseek(fd, 0, SEEK_SET);
-    // }
     n = read(fd, va, len);
-    printf("%s: Load %ld of %lx bytes."NL, __progname, n, size);
+    printf("%s: Load %ld of %lx bytes."NL, __progname, n, len);
 
     munmap_device_memory(mem_fd);
 
