@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "mem_file.h"
+#include "mem.h"
 
 const char * __progname;
 
