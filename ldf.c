@@ -17,6 +17,8 @@ static int usage(int argc, const char * argv[]);
 int opt_pa = 0;
 int opt_file = 0;
 
+char devname[256] = "/dev/mem";
+
 intptr_t mem_pa = ~0;
 size_t mem_sz = 0;
 const char * rfname = NULL;
@@ -31,6 +33,30 @@ static int parse_args(int argc, const char * argv[]) {
         if (*arg == '-') {
             if ((strcmp(arg, "-h") == 0) || (strcmp(arg, "--help") == 0)) {
                 return usage(argc, argv);
+            } else if (strcmp(arg, "--dev") == 0) {
+                size_t len;
+                if ((i+1) < argc) i++; else return usage(argc, argv);
+                arg = argv[i];
+                len = strlen(arg);
+                if (strncmp(arg, "/dev/", strlen("/dev/")) == 0) {
+                    if (len >= (sizeof(devname))) {
+                        fprintf(stderr, "Error, pthname too long"NL);
+                        return -1;
+                    }
+                    strcpy(devname, arg);
+                } else {
+                    if (len >= (sizeof(devname)-strlen("/dev/"))) {
+                        fprintf(stderr, "Error, pthname too long"NL);
+                        return -1;
+                    }
+                    sprintf(devname, "/dev/%s", arg);
+                }
+            } else if (strcmp(arg, "--uio") == 0) {
+                unsigned long uio_num;
+                if ((i+1) < argc) i++; else return usage(argc, argv);
+                arg = argv[i];
+                uio_num = strtoul(arg, NULL, 0);
+                sprintf(devname, "/dev/uio%ld", uio_num);
             } else {
                 printf("Unknown argument argv[%d]:%s"NL, 0, argv[i]);
             }
@@ -83,7 +109,7 @@ int main(int argc, const char * argv[]) {
         return usage(argc, argv);
     }
 
-    if ((ret = mem_ldfile(mem_pa, mem_sz, rfname)) != EXIT_SUCCESS) {
+    if ((ret = mem_ldfile(devname, mem_pa, mem_sz, rfname)) != EXIT_SUCCESS) {
         return ret;
     }
 
@@ -104,6 +130,8 @@ static int usage(int argc, const char * argv[]) {
             ""NL
             "OPTIONS"NL
             "-h, --help         Show this message"NL
+            "--dev PATH         Set I/O device special file path"NL
+            "--uio NUM          Set I/O device path to '/dev/uio#'"NL
             ""NL
             , argv[0]);
     fflush(stdout);

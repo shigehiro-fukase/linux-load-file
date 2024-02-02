@@ -107,7 +107,7 @@ static inline fpos_t file_get_size(FILE * fp) {
 }
 #endif
 
-static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
+static inline int mem_ldfile(const char * dev, intptr_t pa, size_t len, const char * path) {
     int ret = 0;
     int fd = -1;
     int mem_fd = -1;
@@ -121,7 +121,7 @@ static inline int mem_ldfile(intptr_t pa, size_t len, const char * path) {
         goto L_RETURN;
     }
 
-    if ((va = mmap_device_memory(NULL, NULL, len, pa, &mem_fd)) == NULL) {
+    if ((va = mmap_device_memory(dev, NULL, len, pa, &mem_fd)) == NULL) {
         printf("%s: Cannot map memory 0x%016lX (+0x%lX)"NL, __progname, pa, len);
         ret = -1;
         goto L_RETURN;
